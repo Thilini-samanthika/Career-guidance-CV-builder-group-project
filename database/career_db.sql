@@ -70,16 +70,22 @@ CREATE TABLE IF NOT EXISTS cv_templates (
 -- ========================
 -- 6. User CV Table
 -- ========================
-CREATE TABLE IF NOT EXISTS user_cv (
-    cv_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    template_id INT NOT NULL,
-    content TEXT NOT NULL,
-    pdf_path VARCHAR(200),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (template_id) REFERENCES cv_templates(template_id) ON DELETE CASCADE
+CREATE TABLE cvs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  fullname VARCHAR(120) NOT NULL,
+  email VARCHAR(120) NOT NULL,
+  phone VARCHAR(40),
+  linkedin VARCHAR(200),
+  about TEXT,
+  education TEXT,
+  work_experiences TEXT,
+  projects TEXT,
+  skills TEXT,
+  template VARCHAR(20),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 
 -- ========================
 -- 7. cv_downloads table
