@@ -1,20 +1,28 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-require_once __DIR__ . '/db.php';
-
+// Database credentials - You must fill these in with your own data.
 $servername = "localhost";
-$username   = "root";
-$password   = "";
-$dbname     = "career_db";
+$username = "your_username"; // Replace with your MySQL username
+$password = "your_password"; // Replace with your MySQL password
+$dbname = "your_database_name"; // Replace with your database name
 
-// Create connection
+// Create a new database connection
 $conn = new mysqli($servername, $username, $password, $dbname);
 
-// Check connection
+// Check if the connection was successful
 if ($conn->connect_error) {
+    // If connection fails, stop the script and show an error
     die("Connection failed: " . $conn->connect_error);
 }
-
-$conn->set_charset("utf8");
 ?>
+```
+eof
+
+### Step 3: Link Other PHP Files to `db.php`
+
+Every PHP script that needs to interact with the database (e.g., to read, write, update, or delete data) must include your `db.php` file. This is done using a single line of code.
+
+1.  **Open `register.php`**.
+2.  Ensure this line is at the very top of the file, right after `session_start()`:
+    ```php
+    require_once __DIR__ . '/../db.php';
+    

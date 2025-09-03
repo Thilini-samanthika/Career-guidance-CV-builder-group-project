@@ -1,75 +1,90 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Set a session to track user login status
 session_start();
 
-require_once __DIR__ . '/db.php';
+// Ensure the database connection file is included
+// The path is relative from the 'backend' folder
+require_once __DIR__ . '/../db.php';
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
+// Check if the registration button was clicked
+if (isset($_POST['register_btn'])) {
+    // Sanitize and validate user inputs to prevent SQL injection and other attacks
+    $username = $conn->real_escape_string($_POST['username']);
+    $password = $conn->real_escape_string($_POST['password']);
+    $confirm_password = $conn->real_escape_string($_POST['confirm_password']);
+    $email = $conn->real_escape_string($_POST['email']);
 
-require '../vendor/autoload.php';
-
-if (isset($_POST['register'])) {
-    $full_name = $_POST['full_name'] ?? '';
-    $email = $_POST['email'] ?? '';
-    $password = $_POST['password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
-    
-    // Validation
-    if (empty($full_name) || empty($email) || empty($password) || empty($confirm_password)) {
-        $error = "All fields are required!";
-    } elseif ($password !== $confirm_password) {
-        $error = "Passwords do not match!";
-    } else {
-        // Check if email already exists
-        $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $stmt->store_result();
-        
-        if ($stmt->num_rows > 0) {
-            $error = "Email already exists!";
-        } else {
-            // Hash password and create verification token
-            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-            $token = bin2hex(random_bytes(16));
-
-            $stmt = $conn->prepare("INSERT INTO users (full_name, email, password, verification_token) VALUES (?, ?, ?, ?)");
-            $stmt->bind_param("ssss", $full_name, $email, $hashed_password, $token);
-            
-            if ($stmt->execute()) {
-                // Send verification email
-                $mail = new PHPMailer(true);
-                try {
-                    $mail->isSMTP();
-                    $mail->Host = "smtp.gmail.com";
-                    $mail->SMTPAuth = true;
-                    $mail->Username = "youremail@gmail.com";   // change this
-                    $mail->Password = "your-app-password";     // Gmail App Password
-                    $mail->SMTPSecure = "tls";
-                    $mail->Port = 587;
-
-                    $mail->setFrom("youremail@gmail.com", "Career Builder");
-                    $mail->addAddress($email, $full_name);
-
-                    $verify_link = "http://localhost/career_guidance_cv_builder/backend/verify.php?token=$token";
-
-                    $mail->isHTML(true);
-                    $mail->Subject = "Verify your Email";
-                    $mail->Body = "Hi $full_name,<br><br> Please verify your email by clicking here: 
-                                   <a href='$verify_link'>Verify Email</a>";
-
-                    $mail->send();
-                    $success = "Registration successful! Please check your email to verify.";
-                } catch (Exception $e) {
-                    $error = "Could not send verification email. Mailer Error: " . $mail->ErrorInfo;
-                }
-            } else {
-                $error = "Registration failed: " . $conn->error;
-            }
-        }
+    // Simple validation checks
+    if (empty($username) || empty($password) || empty($confirm_password) || empty($email)) {
+        die("Please fill in all fields.");
     }
+    
+    // Check if passwords match
+    if ($password !== $confirm_password) {
+        die("Passwords do not match. Please try again.");
+    }
+
+    // Hash the password for security before storing it
+    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+    // SQL query to insert a new user into the database
+    // The table name is 'users' as a common practice
+    $sql = "INSERT INTO users (username, password, email) VALUES (?, ?, ?)";
+
+    // Use a prepared statement to prevent SQL injection
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("sss", $username, $hashed_password, $email);
+
+    if ($stmt->execute()) {
+        // Registration successful, redirect the user to a login page or dashboard
+        $_SESSION['success_message'] = "Registration successful! You can now log in.";
+        header("Location: ../index.php"); // Adjust to your login page path
+        exit();
+    } else {
+        // If registration fails, display an error
+        die("Error: " . $stmt->error);
+    }
+    
+    $stmt->close();
 }
+
+// Close the database connection
+$conn->close();
 ?>
+
+<!-- HTML for the registration form -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Registration</title>
+    <link rel="stylesheet" href="style.css"> <!-- Assuming you have a CSS file for styling -->
+</head>
+<body>
+
+<div class="registration-container">
+    <h2>Register Here</h2>
+    <form action="backend/register.php" method="POST">
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+        </div>
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <div class="form-group">
+            <label for="confirm_password">Confirm Password:</label>
+            <input type="password" id="confirm_password" name="confirm_password" required>
+        </div>
+        <button type="submit" name="register_btn">Register</button>
+    </form>
+</div>
+
+</body>
+</html>
